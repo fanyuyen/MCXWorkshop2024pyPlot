@@ -21,9 +21,8 @@ def plot_3d_slices(data, x_index=None, y_index=None, z_index=None):
     if z_index is None:
         z_index = data.shape[2] // 2
 
-    log_data = np.log10(np.abs(data) + 1)
-    vmax = log_data.max()
-    vmin = log_data.min()
+    vmax = data.max()
+    vmin = data.min()
 
     x = np.linspace(0, data.shape[0]-1, data.shape[0])
     y = np.linspace(0, data.shape[1]-1, data.shape[1])
@@ -34,17 +33,17 @@ def plot_3d_slices(data, x_index=None, y_index=None, z_index=None):
 
     # X-axis slice
     fig.add_trace(go.Surface(z=Z[x_index, :, :], x=X[x_index, :, :], y=Y[x_index, :, :],
-                             surfacecolor=log_data[x_index, :, :], colorscale='Turbo',
+                             surfacecolor=data[x_index, :, :], colorscale='Turbo',
                              cmin=vmin, cmax=vmax, showscale=False))
 
     # Y-axis slice
     fig.add_trace(go.Surface(z=Z[:, y_index, :], x=X[:, y_index, :], y=Y[:, y_index, :],
-                            surfacecolor=log_data[:, y_index, :], colorscale='Turbo',
+                            surfacecolor= data[:, y_index, :], colorscale='Turbo',
                             cmin=vmin, cmax=vmax, showscale=False))
 
     # Z-axis slice
     fig.add_trace(go.Surface(x=X[:, :, z_index], y=Y[:, :, z_index], z=Z[:, :, z_index],
-                             surfacecolor=log_data[:, :, z_index], colorscale='Turbo',
+                             surfacecolor= data[:, :, z_index], colorscale='Turbo',
                              cmin=vmin, cmax=vmax, showscale=True))
 
     fig.update_layout(
