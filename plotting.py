@@ -60,7 +60,7 @@ def plot_3d_slices(data, x_index=None, y_index=None, z_index=None):
     fig.show()
 
 def plot_mesh(nodes, faces, color='blue', x_min=None, y_min=None, z_min=None):
-       fig = go.Figure()
+    fig = go.Figure()
 
     # Filter nodes based on the specified minimum values
     valid_nodes_mask = np.ones(len(nodes), dtype=bool)
