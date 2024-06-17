@@ -33,21 +33,20 @@ def plot_3d_slices(data, x_index=None, y_index=None, z_index=None):
 
     # X-axis slice
     fig.add_trace(go.Surface(z=Z[x_index, :, :], x=X[x_index, :, :], y=Y[x_index, :, :],
-                             surfacecolor=data[x_index, :, :], colorscale='Turbo',
+                             surfacecolor=data[x_index, :, :], colorscale='Viridis',
                              cmin=vmin, cmax=vmax, showscale=False))
 
     # Y-axis slice
     fig.add_trace(go.Surface(z=Z[:, y_index, :], x=X[:, y_index, :], y=Y[:, y_index, :],
-                            surfacecolor= data[:, y_index, :], colorscale='Turbo',
+                            surfacecolor= data[:, y_index, :], colorscale='Viridis',
                             cmin=vmin, cmax=vmax, showscale=False))
 
     # Z-axis slice
     fig.add_trace(go.Surface(x=X[:, :, z_index], y=Y[:, :, z_index], z=Z[:, :, z_index],
-                             surfacecolor= data[:, :, z_index], colorscale='Turbo',
+                             surfacecolor= data[:, :, z_index], colorscale='Viridis',
                              cmin=vmin, cmax=vmax, showscale=True))
 
     fig.update_layout(
-        title="3D Surface Slices of Logarithmic Data",
         autosize=False,
         width=800,
         height=800,
@@ -61,9 +60,9 @@ def plot_3d_slices(data, x_index=None, y_index=None, z_index=None):
     fig.show()
 
 def plot_mesh(nodes, faces, color='blue', x_min=None, y_min=None, z_min=None):
-    fig = go.Figure()
+       fig = go.Figure()
 
-    # Apply filters on nodes and adjust faces accordingly
+    # Filter nodes based on the specified minimum values
     valid_nodes_mask = np.ones(len(nodes), dtype=bool)
     if x_min is not None:
         valid_nodes_mask &= (nodes[:, 0] > x_min)
@@ -72,32 +71,45 @@ def plot_mesh(nodes, faces, color='blue', x_min=None, y_min=None, z_min=None):
     if z_min is not None:
         valid_nodes_mask &= (nodes[:, 2] > z_min)
 
-    valid_nodes = np.where(valid_nodes_mask)[0]
-    node_index_map = {old_index: new_index for new_index, old_index in enumerate(valid_nodes)}
-    nodes = nodes[valid_nodes]
+    valid_nodes = nodes[valid_nodes_mask]
 
-    mask = np.all(np.isin(faces, valid_nodes), axis=1)
-    faces = faces[mask]
-    for i in range(faces.shape[1]):
-        faces[:, i] = [node_index_map[idx] for idx in faces[:, i]]
+    # Reindex faces to correspond to filtered nodes
+    old_to_new_indices = np.full(nodes.shape[0], -1)  # Initialize with -1 to indicate invalid indices
+    old_to_new_indices[valid_nodes_mask] = np.arange(len(valid_nodes))
+    mask = np.all(old_to_new_indices[faces] >= 0, axis=1)  # Ensure all indices in each face are valid
+    faces = old_to_new_indices[faces[mask]]  # Apply the valid index mask to faces
 
-    # Add faces
-    fig.add_trace(go.Mesh3d(x=nodes[:, 0], y=nodes[:, 1], z=nodes[:, 2],
-                            i=faces[:, 0], j=faces[:, 1], k=faces[:, 2],
-                            color=color, opacity=1))
+    # Add mesh for the filtered nodes and valid faces
+    fig.add_trace(go.Mesh3d(
+        x=valid_nodes[:, 0],
+        y=valid_nodes[:, 1],
+        z=valid_nodes[:, 2],
+        i=faces[:, 0],
+        j=faces[:, 1],
+        k=faces[:, 2],
+        color=color,
+        opacity=1
+    ))
 
-    # Add edges
+    # Plotting all edges once
+    edges = set()
     for face in faces:
-        for i in range(3): 
-            start, end = face[i], face[(i + 1) % 3]
-            fig.add_trace(go.Scatter3d(
-                x=[nodes[start, 0], nodes[end, 0]],
-                y=[nodes[start, 1], nodes[end, 1]],
-                z=[nodes[start, 2], nodes[end, 2]],
-                mode='lines',
-                line=dict(color='black', width=2),
-                showlegend=False
-            ))
+        for i in range(3):
+            edge = tuple(sorted((face[i], face[(i + 1) % 3])))
+            edges.add(edge)
+
+    edge_x, edge_y, edge_z = [], [], []
+    for start, end in edges:
+        edge_x.extend([valid_nodes[start, 0], valid_nodes[end, 0], None])
+        edge_y.extend([valid_nodes[start, 1], valid_nodes[end, 1], None])
+        edge_z.extend([valid_nodes[start, 2], valid_nodes[end, 2], None])
+
+    fig.add_trace(go.Scatter3d(
+        x=edge_x, y=edge_y, z=edge_z,
+        mode='lines',
+        line=dict(color='black', width=2),
+        showlegend=False
+    ))
 
     fig.update_layout(scene=dict(xaxis_title='X', yaxis_title='Y', zaxis_title='Z'),
                       width=700, height=700, margin=dict(r=20, l=10, b=10, t=10))
